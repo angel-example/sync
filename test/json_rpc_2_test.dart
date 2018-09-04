@@ -13,17 +13,17 @@ main() {
   JsonRpc2Adapter adapter;
 
   setUp(() async {
-    serverSocket = await ServerSocket.bind(InternetAddress.LOOPBACK_IP_V4, 0);
+    serverSocket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
 
     adapter = new JsonRpc2Adapter(
         serverSocket.map<StreamChannel<String>>(streamSocket));
 
     var socket1 =
-        await Socket.connect(InternetAddress.LOOPBACK_IP_V4, serverSocket.port);
+        await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
     var socket2 =
-        await Socket.connect(InternetAddress.LOOPBACK_IP_V4, serverSocket.port);
+        await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
     var socket3 =
-        await Socket.connect(InternetAddress.LOOPBACK_IP_V4, serverSocket.port);
+        await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
 
     client1 =
         new JsonRpc2Client('json_rpc_2_test::secret', streamSocket(socket1));
@@ -79,7 +79,7 @@ main() {
     test('reject unknown client id', () async {
       try {
         var sock = await Socket.connect(
-            InternetAddress.LOOPBACK_IP_V4, serverSocket.port);
+            InternetAddress.loopbackIPv4, serverSocket.port);
         var client =
             new JsonRpc2Client('json_rpc_2_test::invalid', streamSocket(sock));
         await client.publish('foo', 'bar');
@@ -92,7 +92,7 @@ main() {
     test('reject unprivileged publish', () async {
       try {
         var sock = await Socket.connect(
-            InternetAddress.LOOPBACK_IP_V4, serverSocket.port);
+            InternetAddress.loopbackIPv4, serverSocket.port);
         var client =
             new JsonRpc2Client('json_rpc_2_test::no_publish', streamSocket(sock));
         await client.publish('foo', 'bar');
@@ -105,7 +105,7 @@ main() {
     test('reject unprivileged subscribe', () async {
       try {
         var sock = await Socket.connect(
-            InternetAddress.LOOPBACK_IP_V4, serverSocket.port);
+            InternetAddress.loopbackIPv4, serverSocket.port);
         var client = new JsonRpc2Client(
             'json_rpc_2_test::no_subscribe', streamSocket(sock));
         await client.subscribe('foo');
@@ -119,7 +119,7 @@ main() {
 
 StreamChannel<String> streamSocket(Socket socket) {
   var channel = new _SocketStreamChannel(socket);
-  return channel.transform(new StreamChannelTransformer.fromCodec(UTF8));
+  return channel.transform(new StreamChannelTransformer.fromCodec(utf8));
 }
 
 class _SocketStreamChannel extends StreamChannelMixin<List<int>> {

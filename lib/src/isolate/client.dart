@@ -32,7 +32,7 @@ class IsolateClient extends Client {
           if (data['status'] is! bool) {
             c.completeError(
                 new FormatException('The server sent an invalid response.'));
-          } else if (!data['status']) {
+          } else if (!(data['status'] as bool)) {
             c.completeError(new PubSubException(data['error_message']
                     ?.toString() ??
                 'The server sent a failure response, but did not provide an error message.'));
@@ -40,11 +40,11 @@ class IsolateClient extends Client {
             c.completeError(new FormatException(
                 'The server sent a success response, but did not include a result.'));
           } else {
-            c.complete(data['result']);
+            c.complete(data['result'] as Map);
           }
         }
       } else if (data is Map && data['id'] is String && _id == null) {
-        _id = data['id'];
+        _id = data['id'] as String;
 
         for (var c in _onConnect) {
           if (!c.isCompleted) c.complete(_id);
@@ -75,7 +75,7 @@ class IsolateClient extends Client {
   Future publish(String eventName, value) {
     return _whenConnected(() {
       var c = new Completer<Map>();
-      var requestId = _uuid.v4();
+      var requestId = _uuid.v4() as String;
       _requests[requestId] = c;
       serverSendPort.send({
         'id': _id,
@@ -95,7 +95,7 @@ class IsolateClient extends Client {
   Future<ClientSubscription> subscribe(String eventName) {
     return _whenConnected<ClientSubscription>(() {
       var c = new Completer<Map>();
-      var requestId = _uuid.v4();
+      var requestId = _uuid.v4() as String;
       _requests[requestId] = c;
       serverSendPort.send({
         'id': _id,
@@ -105,7 +105,7 @@ class IsolateClient extends Client {
       });
       return c.future.then<ClientSubscription>((result) {
         var s = new _IsolateClientSubscription(
-            eventName, result['subscription_id'], this);
+            eventName, result['subscription_id'] as String, this);
         _subscriptions.add(s);
         return s;
       });
@@ -159,7 +159,7 @@ class _IsolateClientSubscription extends ClientSubscription {
   Future unsubscribe() {
     return client._whenConnected(() {
       var c = new Completer<Map>();
-      var requestId = client._uuid.v4();
+      var requestId = client._uuid.v4() as String;
       client._requests[requestId] = c;
       client.serverSendPort.send({
         'id': client._id,

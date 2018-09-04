@@ -39,7 +39,7 @@ class IsolateAdapter extends Adapter {
   void start() {
     receivePort.listen((data) {
       if (data is SendPort) {
-        var id = _uuid.v4();
+        var id = _uuid.v4() as String;
         _clients[id] = data;
         data.send({'status': true, 'id': id});
       } else if (data is Map &&
@@ -177,7 +177,7 @@ class _IsolateSubscriptionRequestImpl extends SubscriptionRequest {
 
   @override
   FutureOr<Subscription> accept() {
-    var id = _uuid.v4();
+    var id = _uuid.v4() as String;
     sendPort.send({
       'status': true,
       'request_id': requestId,

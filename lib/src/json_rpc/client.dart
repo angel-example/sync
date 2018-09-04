@@ -37,11 +37,11 @@ class JsonRpc2Client extends Client {
         if (data['status'] is! bool) {
           c.completeError(
               new FormatException('The server sent an invalid response.'));
-        } else if (!data['status']) {
+        } else if (!(data['status'] as bool)) {
           c.completeError(new PubSubException(data['error_message']
                   ?.toString() ??
               'The server sent a failure response, but did not provide an error message.'));
-        }  else {
+        } else {
           c.complete(data);
         }
       }
@@ -53,7 +53,7 @@ class JsonRpc2Client extends Client {
   @override
   Future publish(String eventName, value) {
     var c = new Completer<Map>();
-    var requestId = _uuid.v4();
+    var requestId = _uuid.v4() as String;
     _requests[requestId] = c;
     _peer.sendNotification('publish', {
       'request_id': requestId,
@@ -67,7 +67,7 @@ class JsonRpc2Client extends Client {
   @override
   Future<ClientSubscription> subscribe(String eventName) {
     var c = new Completer<Map>();
-    var requestId = _uuid.v4();
+    var requestId = _uuid.v4() as String;
     _requests[requestId] = c;
     _peer.sendNotification('subscribe', {
       'request_id': requestId,
@@ -76,7 +76,7 @@ class JsonRpc2Client extends Client {
     });
     return c.future.then<ClientSubscription>((result) {
       var s = new _JsonRpc2ClientSubscription(
-          eventName, result['subscription_id'], this);
+          eventName, result['subscription_id'] as String, this);
       _subscriptions.add(s);
       return s;
     });
@@ -121,7 +121,7 @@ class _JsonRpc2ClientSubscription extends ClientSubscription {
   @override
   Future unsubscribe() {
     var c = new Completer<Map>();
-    var requestId = client._uuid.v4();
+    var requestId = client._uuid.v4() as String;
     client._requests[requestId] = c;
     client._peer.sendNotification('unsubscribe', {
       'request_id': requestId,
