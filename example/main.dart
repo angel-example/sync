@@ -9,7 +9,9 @@ main() async {
   var server = new pub_sub.Server([adapter]);
 
   // You then need to create a client that will connect to the adapter.
-  // Each isolate in your application should contain a client.
+  // Every untrusted client in your application should be pre-registered.
+  //
+  // In the case of Isolates, however, those are always implicitly trusted.
   for (int i = 0; i < Platform.numberOfProcessors - 1; i++) {
     server.registerClient(new pub_sub.ClientInfo('client$i'));
   }
@@ -28,6 +30,7 @@ main() async {
 }
 
 void isolateMain(List args) {
+  // Isolates are always trusted, so technically we don't need to pass a client iD.
   var client =
       new pub_sub.IsolateClient('client${args[0]}', args[1] as SendPort);
 

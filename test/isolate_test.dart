@@ -6,16 +6,18 @@ import 'package:test/test.dart';
 main() {
   Server server;
   Client client1, client2, client3;
+  IsolateClient trustedClient;
   IsolateAdapter adapter;
 
   setUp(() async {
     adapter = new IsolateAdapter();
-    client1 = new IsolateClient(
-        'isolate_test::secret', adapter.receivePort.sendPort);
+    client1 =
+        new IsolateClient('isolate_test::secret', adapter.receivePort.sendPort);
     client2 = new IsolateClient(
         'isolate_test::secret2', adapter.receivePort.sendPort);
     client3 = new IsolateClient(
         'isolate_test::secret3', adapter.receivePort.sendPort);
+    trustedClient = new IsolateClient(null, adapter.receivePort.sendPort);
 
     server = new Server([adapter])
       ..registerClient(const ClientInfo('isolate_test::secret'))
@@ -34,8 +36,31 @@ main() {
   });
 
   tearDown(() {
-    Future.wait(
-        [server.close(), client1.close(), client2.close(), client3.close()]);
+    Future.wait([
+      server.close(),
+      client1.close(),
+      client2.close(),
+      client3.close(),
+      trustedClient.close()
+    ]);
+  });
+
+  group('trusted', () {
+    test('can publish', () async {
+      await trustedClient.publish('hey', 'bye');
+      expect(trustedClient.clientId, isNotNull);
+    });
+    test('can sub/unsub', () async {
+      String clientId;
+      await trustedClient.publish('heyaaa', 'byeaa');
+      expect(clientId = trustedClient.clientId, isNotNull);
+
+      var sub = await trustedClient.subscribe('yeppp');
+      expect(trustedClient.clientId, clientId);
+
+      await sub.unsubscribe();
+      expect(trustedClient.clientId, clientId);
+    });
   });
 
   test('subscribers receive published events', () async {
@@ -46,7 +71,8 @@ main() {
 
   test('subscribers are not sent their own events', () async {
     var sub = await client1.subscribe('foo');
-    await client1.publish('foo', '<this should never be sent to client1, because client1 sent it.>');
+    await client1.publish('foo',
+        '<this should never be sent to client1, because client1 sent it.>');
     await sub.unsubscribe();
     expect(await sub.isEmpty, isTrue);
   });

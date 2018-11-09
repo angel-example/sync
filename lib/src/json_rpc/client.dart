@@ -13,9 +13,14 @@ class JsonRpc2Client extends Client {
   json_rpc_2.Peer _peer;
 
   /// The ID of the client we are authenticating as.
-  final String clientId;
+  ///
+  /// May be `null`, if and only if we are marked as a trusted source on
+  /// the server side.
+  String get clientId => _clientId;
+  String _clientId;
 
-  JsonRpc2Client(this.clientId, StreamChannel<String> channel) {
+  JsonRpc2Client(String clientId, StreamChannel<String> channel) {
+    _clientId = clientId;
     _peer = new json_rpc_2.Peer(channel);
 
     _peer.registerMethod('event', (json_rpc_2.Parameters params) {
@@ -61,7 +66,9 @@ class JsonRpc2Client extends Client {
       'event_name': eventName,
       'value': value
     });
-    return c.future;
+    return c.future.then((data) {
+      _clientId = data['result']['client_id'] as String;
+    });
   }
 
   @override
@@ -75,6 +82,7 @@ class JsonRpc2Client extends Client {
       'event_name': eventName
     });
     return c.future.then<ClientSubscription>((result) {
+      _clientId = result['client_id'] as String;
       var s = new _JsonRpc2ClientSubscription(
           eventName, result['subscription_id'] as String, this);
       _subscriptions.add(s);

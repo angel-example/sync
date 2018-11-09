@@ -43,8 +43,24 @@ main() async {
   server.start();
 }
 ```
+### Trusted Clients
+You can use `package:pub_sub` without explicitly registering
+clients, *if and only if* those clients come from trusted sources.
 
-The ID's of all clients who will connect to the server must be known at start-up time.
+Clients via `Isolate` are always trusted.
+
+Clients via `package:json_rpc_2` must be explicitly marked
+as trusted (i.e. using an IP whitelist mechanism):
+
+```dart
+new JsonRpc2Adapter(..., isTrusted: false);
+
+// Pass `null` as Client ID when trusted...
+new pub_sub.IsolateClient(null);
+```
+
+### Access Control
+The ID's of all *untrusted* clients who will connect to the server must be known at start-up time.
 You may not register new clients after the server has started. This is mostly a security consideration;
 if it is impossible to register new clients, then malicious users cannot grant themselves additional
 privileges within the system.

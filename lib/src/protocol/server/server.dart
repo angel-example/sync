@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'adapter.dart';
 import 'client.dart';
 import 'publish.dart';
@@ -11,8 +12,10 @@ import 'subscription.dart';
 class Server {
   final List<Adapter> _adapters = [];
   final List<ClientInfo> _clients = [];
+  final _rnd = new Random.secure();
   final Map<String, List<Subscription>> _subscriptions = {};
   bool _started = false;
+  int _adHocIds = 0;
 
   /// Initialize a server, optionally with a number of [adapters].
   Server([Iterable<Adapter> adapters = const []]) {
@@ -48,6 +51,16 @@ class Server {
     return new Future.value();
   }
 
+  String _newClientId() {
+    // Create an unpredictable-enough ID. The harder it is for an attacker to guess, the better.
+    var id =
+        'pub_sub::adhoc_client${_rnd.nextDouble()}::${_adHocIds++}:${new DateTime.now().millisecondsSinceEpoch * _rnd.nextDouble()}';
+
+    // This client is coming from a trusted source, and can therefore both publish and subscribe.
+    _clients.add(new ClientInfo(id));
+    return id;
+  }
+
   void start() {
     if (_adapters.isEmpty)
       throw new StateError(
@@ -64,41 +77,57 @@ class Server {
     for (var adapter in _adapters) {
       // Handle publishes
       adapter.onPublish.listen((rq) {
-        var client =
-            _clients.firstWhere((c) => c.id == rq.clientId, orElse: () => null);
+        ClientInfo client;
+        String clientId;
+
+        if (rq.clientId?.isNotEmpty == true ||
+            adapter.isTrustedPublishRequest(rq)) {
+          clientId =
+              rq.clientId?.isNotEmpty == true ? rq.clientId : _newClientId();
+          client =
+              _clients.firstWhere((c) => c.id == clientId, orElse: () => null);
+        }
 
         if (client == null) {
-          rq.reject('Unrecognized client ID "${rq.clientId}".');
+          rq.reject('Unrecognized client ID "${clientId ?? '<missing>'}".');
         } else if (!client.canPublish) {
           rq.reject('You are not allowed to publish events.');
         } else {
           var listeners = _subscriptions[rq.eventName]
-                  ?.where((s) => s.clientId != rq.clientId) ??
+                  ?.where((s) => s.clientId != clientId) ??
               [];
 
           if (listeners.isEmpty) {
-            rq.accept(const PublishResponse(0));
+            rq.accept(new PublishResponse(0, clientId));
           } else {
             for (var listener in listeners) {
               listener.dispatch(rq.value);
             }
 
-            rq.accept(new PublishResponse(listeners.length));
+            rq.accept(new PublishResponse(listeners.length, clientId));
           }
         }
       });
 
       // Listen for incoming subscriptions
       adapter.onSubscribe.listen((rq) async {
-        var client =
-            _clients.firstWhere((c) => c.id == rq.clientId, orElse: () => null);
+        ClientInfo client;
+        String clientId;
+
+        if (rq.clientId?.isNotEmpty == true ||
+            adapter.isTrustedSubscriptionRequest(rq)) {
+          clientId =
+              rq.clientId?.isNotEmpty == true ? rq.clientId : _newClientId();
+          client =
+              _clients.firstWhere((c) => c.id == clientId, orElse: () => null);
+        }
 
         if (client == null) {
-          rq.reject('Unrecognized client ID "${rq.clientId}".');
+          rq.reject('Unrecognized client ID "${clientId ?? '<missing>'}".');
         } else if (!client.canSubscribe) {
           rq.reject('You are not allowed to subscribe to events.');
         } else {
-          var sub = await rq.accept();
+          var sub = await rq.accept(clientId);
           var list = _subscriptions.putIfAbsent(rq.eventName, () => []);
           list.add(sub);
         }

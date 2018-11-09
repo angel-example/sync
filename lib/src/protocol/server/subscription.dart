@@ -9,7 +9,9 @@ abstract class SubscriptionRequest {
   String get eventName;
 
   /// Accept the request, and grant the client access to subscribe to the event.
-  FutureOr<Subscription> accept();
+  ///
+  /// Includes the client's ID, which is necessary for ad-hoc clients.
+  FutureOr<Subscription> accept(String clientId);
 
   /// Deny the request with an error message.
   void reject(String errorMessage);
@@ -31,7 +33,7 @@ abstract class UnsubscriptionRequest {
 }
 
 /// Represents a client's subscription to an event.
-/// 
+///
 /// Also provides a means to fire an event.
 abstract class Subscription {
   /// A unique identifier for this subscription.

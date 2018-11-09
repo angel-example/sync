@@ -10,19 +10,23 @@ main() {
   ServerSocket serverSocket;
   Server server;
   Client client1, client2, client3;
+  JsonRpc2Client trustedClient;
   JsonRpc2Adapter adapter;
 
   setUp(() async {
     serverSocket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
 
     adapter = new JsonRpc2Adapter(
-        serverSocket.map<StreamChannel<String>>(streamSocket));
+        serverSocket.map<StreamChannel<String>>(streamSocket),
+        isTrusted: true);
 
     var socket1 =
         await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
     var socket2 =
         await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
     var socket3 =
+        await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
+    var socket4 =
         await Socket.connect(InternetAddress.loopbackIPv4, serverSocket.port);
 
     client1 =
@@ -31,6 +35,7 @@ main() {
         new JsonRpc2Client('json_rpc_2_test::secret2', streamSocket(socket2));
     client3 =
         new JsonRpc2Client('json_rpc_2_test::secret3', streamSocket(socket3));
+    trustedClient = new JsonRpc2Client(null, streamSocket(socket4));
 
     server = new Server([adapter])
       ..registerClient(const ClientInfo('json_rpc_2_test::secret'))
@@ -38,8 +43,8 @@ main() {
       ..registerClient(const ClientInfo('json_rpc_2_test::secret3'))
       ..registerClient(
           const ClientInfo('json_rpc_2_test::no_publish', canPublish: false))
-      ..registerClient(
-          const ClientInfo('json_rpc_2_test::no_subscribe', canSubscribe: false))
+      ..registerClient(const ClientInfo('json_rpc_2_test::no_subscribe',
+          canSubscribe: false))
       ..start();
 
     var sub = await client3.subscribe('foo');
@@ -51,6 +56,24 @@ main() {
   tearDown(() {
     Future.wait(
         [server.close(), client1.close(), client2.close(), client3.close()]);
+  });
+
+  group('trusted', () {
+    test('can publish', () async {
+      await trustedClient.publish('hey', 'bye');
+      expect(trustedClient.clientId, isNotNull);
+    });
+    test('can sub/unsub', () async {
+      String clientId;
+      await trustedClient.publish('heyaaa', 'byeaa');
+      expect(clientId = trustedClient.clientId, isNotNull);
+
+      var sub = await trustedClient.subscribe('yeppp');
+      expect(trustedClient.clientId, clientId);
+
+      await sub.unsubscribe();
+      expect(trustedClient.clientId, clientId);
+    });
   });
 
   test('subscribers receive published events', () async {
@@ -93,8 +116,8 @@ main() {
       try {
         var sock = await Socket.connect(
             InternetAddress.loopbackIPv4, serverSocket.port);
-        var client =
-            new JsonRpc2Client('json_rpc_2_test::no_publish', streamSocket(sock));
+        var client = new JsonRpc2Client(
+            'json_rpc_2_test::no_publish', streamSocket(sock));
         await client.publish('foo', 'bar');
         throw 'Unprivileged publishes should throw an error, but they do not.';
       } on PubSubException catch (e) {

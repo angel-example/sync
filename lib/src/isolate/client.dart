@@ -14,7 +14,11 @@ class IsolateClient extends Client {
   String _id;
 
   /// The ID of the client we are authenticating as.
-  final String clientId;
+  ///
+  /// May be `null`, if and only if we are marked as a trusted source on
+  /// the server side.
+  String get clientId => _clientId;
+  String _clientId;
 
   /// A server's [SendPort] that messages should be sent to.
   final SendPort serverSendPort;
@@ -22,7 +26,8 @@ class IsolateClient extends Client {
   /// A [ReceivePort] that receives messages from the server.
   final ReceivePort receivePort = new ReceivePort();
 
-  IsolateClient(this.clientId, this.serverSendPort) {
+  IsolateClient(String clientId, this.serverSendPort) {
+    _clientId = clientId;
     receivePort.listen((data) {
       if (data is Map && data['request_id'] is String) {
         var requestId = data['request_id'] as String;
@@ -87,7 +92,9 @@ class IsolateClient extends Client {
           'value': value
         }
       });
-      return c.future;
+      return c.future.then((result) {
+        _clientId = result['client_id'] as String;
+      });
     });
   }
 
@@ -104,6 +111,7 @@ class IsolateClient extends Client {
         'params': {'client_id': clientId, 'event_name': eventName}
       });
       return c.future.then<ClientSubscription>((result) {
+        _clientId = result['client_id'] as String;
         var s = new _IsolateClientSubscription(
             eventName, result['subscription_id'] as String, this);
         _subscriptions.add(s);

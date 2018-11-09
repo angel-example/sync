@@ -21,5 +21,8 @@ class PublishResponse {
   /// The number of unique listeners to whom this event was propogated.
   final int listeners;
 
-  const PublishResponse(this.listeners);
+  /// The client ID returned the server. Significant in cases where an ad-hoc client was registered.
+  final String clientId;
+
+  const PublishResponse(this.listeners, this.clientId);
 }

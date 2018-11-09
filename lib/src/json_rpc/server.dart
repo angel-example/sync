@@ -21,7 +21,13 @@ class JsonRpc2Adapter extends Adapter {
   /// A [Stream] of incoming clients, who can both send and receive string data.
   final Stream<StreamChannel<String>> clientStream;
 
-  JsonRpc2Adapter(this.clientStream);
+  /// If `true`, clients can connect through this endpoint, *without* providing a client ID.
+  ///
+  /// This can be a security vulnerability if you don't know what you're doing.
+  /// If you *must* use this over the Internet, use an IP whitelist.
+  final bool isTrusted;
+
+  JsonRpc2Adapter(this.clientStream, {this.isTrusted: false});
 
   @override
   Stream<PublishRequest> get onPublish => _onPublish.stream;
@@ -36,10 +42,17 @@ class JsonRpc2Adapter extends Adapter {
   Future close() {
     if (_peer?.isClosed != true) _peer?.close();
 
-    Future
-        .wait(_peers.where((s) => !s.isClosed).map((s) => s.close()))
+    Future.wait(_peers.where((s) => !s.isClosed).map((s) => s.close()))
         .then((_) => _peers.clear());
     return new Future.value();
+  }
+
+  String _getClientId(json_rpc_2.Parameters params) {
+    try {
+      return params['client_id'].asString;
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
@@ -49,7 +62,7 @@ class JsonRpc2Adapter extends Adapter {
 
       peer.registerMethod('publish', (json_rpc_2.Parameters params) async {
         var requestId = params['request_id'].asString;
-        var clientId = params['client_id'].asString;
+        var clientId = _getClientId(params);
         var eventName = params['event_name'].asString;
         var value = params['value'].value;
         var rq = new _JsonRpc2PublishRequestImpl(
@@ -59,7 +72,7 @@ class JsonRpc2Adapter extends Adapter {
 
       peer.registerMethod('subscribe', (json_rpc_2.Parameters params) async {
         var requestId = params['request_id'].asString;
-        var clientId = params['client_id'].asString;
+        var clientId = _getClientId(params);
         var eventName = params['event_name'].asString;
         var rq = new _JsonRpc2SubscriptionRequestImpl(
             clientId, eventName, requestId, peer, _uuid);
@@ -68,7 +81,7 @@ class JsonRpc2Adapter extends Adapter {
 
       peer.registerMethod('unsubscribe', (json_rpc_2.Parameters params) async {
         var requestId = params['request_id'].asString;
-        var clientId = params['client_id'].asString;
+        var clientId = _getClientId(params);
         var subscriptionId = params['subscription_id'].asString;
         var rq = new _JsonRpc2UnsubscriptionRequestImpl(
             clientId, subscriptionId, peer, requestId);
@@ -77,6 +90,16 @@ class JsonRpc2Adapter extends Adapter {
 
       peer.listen();
     });
+  }
+
+  @override
+  bool isTrustedPublishRequest(PublishRequest request) {
+    return isTrusted;
+  }
+
+  @override
+  bool isTrustedSubscriptionRequest(SubscriptionRequest request) {
+    return isTrusted;
   }
 }
 
@@ -93,7 +116,10 @@ class _JsonRpc2PublishRequestImpl extends PublishRequest {
     peer.sendNotification(requestId, {
       'status': true,
       'request_id': requestId,
-      'result': {'listeners': response.listeners}
+      'result': {
+        'listeners': response.listeners,
+        'client_id': response.clientId
+      }
     });
   }
 
@@ -121,10 +147,14 @@ class _JsonRpc2SubscriptionRequestImpl extends SubscriptionRequest {
       this.clientId, this.eventName, this.requestId, this.peer, this._uuid);
 
   @override
-  FutureOr<Subscription> accept() {
+  FutureOr<Subscription> accept(String clientId) {
     var id = _uuid.v4() as String;
-    peer.sendNotification(requestId,
-        {'status': true, 'request_id': requestId, 'subscription_id': id});
+    peer.sendNotification(requestId, {
+      'status': true,
+      'request_id': requestId,
+      'subscription_id': id,
+      'client_id': clientId
+    });
     return new _JsonRpc2SubscriptionImpl(clientId, id, eventName, peer);
   }
 

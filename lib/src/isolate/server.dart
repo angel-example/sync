@@ -16,6 +16,7 @@ class IsolateAdapter extends Adapter {
 
   /// A [ReceivePort] on which to listen for incoming data.
   final ReceivePort receivePort = new ReceivePort();
+
   @override
   Stream<PublishRequest> get onPublish => _onPublish.stream;
 
@@ -56,7 +57,7 @@ class IsolateAdapter extends Adapter {
         if (sp == null) {
           // There's nobody to respond to, so don't send anything to anyone. Oops.
         } else if (method == 'publish') {
-          if (params['client_id'] is String &&
+          if (_isValidClientId(params['client_id']) &&
               params['event_name'] is String &&
               params.containsKey('value')) {
             String clientId = params['client_id'],
@@ -73,7 +74,8 @@ class IsolateAdapter extends Adapter {
             });
           }
         } else if (method == 'subscribe') {
-          if (params['client_id'] is String && params['event_name'] is String) {
+          if (_isValidClientId(params['client_id']) &&
+              params['event_name'] is String) {
             String clientId = params['client_id'],
                 eventName = params['event_name'];
             var rq = new _IsolateSubscriptionRequestImpl(
@@ -87,7 +89,7 @@ class IsolateAdapter extends Adapter {
             });
           }
         } else if (method == 'unsubscribe') {
-          if (params['client_id'] is String &&
+          if (_isValidClientId(params['client_id']) &&
               params['subscription_id'] is String) {
             String clientId = params['client_id'],
                 subscriptionId = params['subscription_id'];
@@ -111,6 +113,20 @@ class IsolateAdapter extends Adapter {
         }
       }
     });
+  }
+
+  bool _isValidClientId(id) => id == null || id is String;
+
+  @override
+  bool isTrustedPublishRequest(PublishRequest request) {
+    // Isolate clients are considered trusted, because they are
+    // running in the same process as the central server.
+    return true;
+  }
+
+  @override
+  bool isTrustedSubscriptionRequest(SubscriptionRequest request) {
+    return true;
   }
 }
 
@@ -136,7 +152,10 @@ class _IsolatePublishRequestImpl extends PublishRequest {
     sendPort.send({
       'status': true,
       'request_id': requestId,
-      'result': {'listeners': response.listeners}
+      'result': {
+        'listeners': response.listeners,
+        'client_id': response.clientId
+      }
     });
   }
 
@@ -176,12 +195,12 @@ class _IsolateSubscriptionRequestImpl extends SubscriptionRequest {
   }
 
   @override
-  FutureOr<Subscription> accept() {
+  FutureOr<Subscription> accept(String clientId) {
     var id = _uuid.v4() as String;
     sendPort.send({
       'status': true,
       'request_id': requestId,
-      'result': {'subscription_id': id}
+      'result': {'subscription_id': id, 'client_id': clientId}
     });
     return new _IsolateSubscriptionImpl(clientId, id, eventName, sendPort);
   }
