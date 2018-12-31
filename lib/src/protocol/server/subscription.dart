@@ -26,7 +26,7 @@ abstract class UnsubscriptionRequest {
   String get subscriptionId;
 
   /// Accept the request.
-  FutureOr accept();
+  FutureOr<void> accept();
 
   /// Deny the request with an error message.
   void reject(String errorMessage);

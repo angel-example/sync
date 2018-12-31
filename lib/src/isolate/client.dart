@@ -80,7 +80,7 @@ class IsolateClient extends Client {
   Future publish(String eventName, value) {
     return _whenConnected(() {
       var c = new Completer<Map>();
-      var requestId = _uuid.v4() as String;
+      var requestId = _uuid.v4();
       _requests[requestId] = c;
       serverSendPort.send({
         'id': _id,
@@ -102,7 +102,7 @@ class IsolateClient extends Client {
   Future<ClientSubscription> subscribe(String eventName) {
     return _whenConnected<ClientSubscription>(() {
       var c = new Completer<Map>();
-      var requestId = _uuid.v4() as String;
+      var requestId = _uuid.v4();
       _requests[requestId] = c;
       serverSendPort.send({
         'id': _id,
@@ -167,7 +167,7 @@ class _IsolateClientSubscription extends ClientSubscription {
   Future unsubscribe() {
     return client._whenConnected(() {
       var c = new Completer<Map>();
-      var requestId = client._uuid.v4() as String;
+      var requestId = client._uuid.v4();
       client._requests[requestId] = c;
       client.serverSendPort.send({
         'id': client._id,

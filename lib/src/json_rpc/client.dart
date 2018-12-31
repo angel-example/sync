@@ -58,7 +58,7 @@ class JsonRpc2Client extends Client {
   @override
   Future publish(String eventName, value) {
     var c = new Completer<Map>();
-    var requestId = _uuid.v4() as String;
+    var requestId = _uuid.v4();
     _requests[requestId] = c;
     _peer.sendNotification('publish', {
       'request_id': requestId,
@@ -74,7 +74,7 @@ class JsonRpc2Client extends Client {
   @override
   Future<ClientSubscription> subscribe(String eventName) {
     var c = new Completer<Map>();
-    var requestId = _uuid.v4() as String;
+    var requestId = _uuid.v4();
     _requests[requestId] = c;
     _peer.sendNotification('subscribe', {
       'request_id': requestId,
@@ -129,7 +129,7 @@ class _JsonRpc2ClientSubscription extends ClientSubscription {
   @override
   Future unsubscribe() {
     var c = new Completer<Map>();
-    var requestId = client._uuid.v4() as String;
+    var requestId = client._uuid.v4();
     client._requests[requestId] = c;
     client._peer.sendNotification('unsubscribe', {
       'request_id': requestId,

@@ -148,7 +148,7 @@ class _JsonRpc2SubscriptionRequestImpl extends SubscriptionRequest {
 
   @override
   FutureOr<Subscription> accept(String clientId) {
-    var id = _uuid.v4() as String;
+    var id = _uuid.v4();
     peer.sendNotification(requestId, {
       'status': true,
       'request_id': requestId,
@@ -199,7 +199,7 @@ class _JsonRpc2UnsubscriptionRequestImpl extends UnsubscriptionRequest {
       this.clientId, this.subscriptionId, this.peer, this.requestId);
 
   @override
-  accept() {
+  void accept() {
     peer.sendNotification(requestId, {'status': true, 'result': {}});
   }
 
