@@ -48,10 +48,10 @@ class IsolateAdapter extends Adapter {
           data['request_id'] is String &&
           data['method'] is String &&
           data['params'] is Map) {
-        String id = data['id'],
-            requestId = data['request_id'],
-            method = data['method'];
-        Map params = data['params'];
+        var id = data['id'] as String,
+            requestId = data['request_id'] as String,
+            method = data['method'] as String;
+        var params = data['params'] as Map;
         var sp = _clients[id];
 
         if (sp == null) {
@@ -60,8 +60,8 @@ class IsolateAdapter extends Adapter {
           if (_isValidClientId(params['client_id']) &&
               params['event_name'] is String &&
               params.containsKey('value')) {
-            String clientId = params['client_id'],
-                eventName = params['event_name'];
+            var clientId = params['client_id'] as String,
+                eventName = params['event_name'] as String;
             var value = params['value'];
             var rq = new _IsolatePublishRequestImpl(
                 requestId, clientId, eventName, value, sp);
@@ -76,8 +76,8 @@ class IsolateAdapter extends Adapter {
         } else if (method == 'subscribe') {
           if (_isValidClientId(params['client_id']) &&
               params['event_name'] is String) {
-            String clientId = params['client_id'],
-                eventName = params['event_name'];
+            var clientId = params['client_id'] as String,
+                eventName = params['event_name'] as String;
             var rq = new _IsolateSubscriptionRequestImpl(
                 clientId, eventName, sp, requestId, _uuid);
             _onSubscribe.add(rq);
@@ -91,8 +91,8 @@ class IsolateAdapter extends Adapter {
         } else if (method == 'unsubscribe') {
           if (_isValidClientId(params['client_id']) &&
               params['subscription_id'] is String) {
-            String clientId = params['client_id'],
-                subscriptionId = params['subscription_id'];
+            var clientId = params['client_id'] as String,
+                subscriptionId = params['subscription_id'] as String;
             var rq = new _IsolateUnsubscriptionRequestImpl(
                 clientId, subscriptionId, sp, requestId);
             _onUnsubscribe.add(rq);

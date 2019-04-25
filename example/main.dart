@@ -23,7 +23,7 @@ main() async {
   //
   // Fortunately, we can send SendPorts over Isolates, so this is no hassle.
   for (int i = 0; i < Platform.numberOfProcessors - 1; i++)
-    Isolate.spawn(isolateMain, [i, adapter.receivePort.sendPort]);
+    await Isolate.spawn(isolateMain, [i, adapter.receivePort.sendPort]);
 
   // It's possible that you're running your application in the server isolate as well:
   isolateMain([0, adapter.receivePort.sendPort]);

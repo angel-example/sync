@@ -27,7 +27,7 @@ class JsonRpc2Adapter extends Adapter {
   /// If you *must* use this over the Internet, use an IP whitelist.
   final bool isTrusted;
 
-  JsonRpc2Adapter(this.clientStream, {this.isTrusted: false});
+  JsonRpc2Adapter(this.clientStream, {this.isTrusted = false});
 
   @override
   Stream<PublishRequest> get onPublish => _onPublish.stream;

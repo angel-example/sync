@@ -10,5 +10,5 @@ class ClientInfo {
   /// If `true` (default), then the client can subscribe to events.
   final bool canSubscribe;
 
-  const ClientInfo(this.id, {this.canPublish: true, this.canSubscribe: true});
+  const ClientInfo(this.id, {this.canPublish = true, this.canSubscribe = true});
 }

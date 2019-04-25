@@ -1,3 +1,7 @@
+# 2.3.0
+* Allow `2.x` versions of `stream_channel`.
+* Apply `package:pedantic` lints.
+
 # 2.2.0
 * Upgrade `uuid`.
 
